@@ -1,0 +1,7 @@
+pymupdf
+requests
+python-dotenv
+sentence-transformers
+langchain-community
+faiss-cpu
+fpdf

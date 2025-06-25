@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>📘 Study Guide Generator</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>📘 Study Guide Generator</h1>
+
+    <textarea id="questionInput" rows="4" placeholder="Enter your question here..."></textarea>
+    <button id="generateBtn">🎯 Generate Study Guide</button>
+
+    <div id="response" style="display: none;">
+      <div id="botResponseContainer">
+        <h2>📘 Study Guide</h2>
+        <p><strong>Query:</strong> <span id="userQueryDisplay"></span></p>
+        <div id="botResponse"></div>
+      </div>
+      <button id="downloadBtn" style="display: none;">📄 Download PDF</button>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("generateBtn").addEventListener("click", sendQuery);
+    document.getElementById("questionInput").addEventListener("keydown", (e) => {
+      if (e.ctrlKey && e.key === "Enter") {
+        sendQuery();
+      }
+    });
+
+    async function sendQuery() {
+      const question = document.getElementById("questionInput").value.trim();
+      if (!question) {
+        alert("⚠️ Please enter a question!");
+        return;
+      }
+
+      document.getElementById("response").style.display = "none";
+      document.getElementById("botResponse").innerHTML = "";
+      document.getElementById("downloadBtn").style.display = "none";
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question })
+        });
+
+        const text = await res.text();
+
+        if (!res.ok) {
+          try {
+            const errorData = JSON.parse(text);
+            alert("❌ Error: " + (errorData.error || "Unknown server error"));
+          } catch {
+            alert("❌ Unexpected error: " + text);
+          }
+          return;
+        }
+
+        document.getElementById("userQueryDisplay").textContent = question;
+        document.getElementById("botResponse").innerHTML = marked.parse(text);
+        document.getElementById("response").style.display = "block";
+        document.getElementById("downloadBtn").style.display = "inline-block";
+
+      } catch (err) {
+        alert("❌ Network or server error: " + err.message);
+      }
+    }
+
+    document.getElementById("downloadBtn").addEventListener("click", downloadPDF);
+
+function downloadPDF() {
+  const element = document.createElement('div');
+  element.innerHTML = document.getElementById("botResponse").innerHTML;
+
+  // Inline style to reduce unnecessary spacing
+  element.style.padding = "10px";
+  element.style.fontFamily = "Arial, sans-serif";
+  element.style.fontSize = "12px";
+
+  const opt = {
+    margin: 10,
+    filename: 'study_guide.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 3, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'], avoid: ['div'] }
+  };
+
+  // Small timeout to ensure rendering is done
+  setTimeout(() => {
+    html2pdf().set(opt).from(element).save();
+  }, 300);
+}
+  </script>
+</body>
+</html>
